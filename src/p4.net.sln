@@ -7,14 +7,19 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P4API", "P4API\P4API.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P4API.Test", "P4API.Test\P4API.Test.csproj", "{1943CEA8-8AF7-498B-9A1B-4050B5598F4F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{4F6A6426-7057-46CA-BA1D-5CDE8B1B5CF1}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\packages.config = .nuget\packages.config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Mixed Platforms = Debug|Mixed Platforms
 		Release|Mixed Platforms = Release|Mixed Platforms
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9544C473-8276-46E0-B252-0576527DBE68}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{9544C473-8276-46E0-B252-0576527DBE68}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{9544C473-8276-46E0-B252-0576527DBE68}.Debug|Mixed Platforms.ActiveCfg = Debug|x64
+		{9544C473-8276-46E0-B252-0576527DBE68}.Debug|Mixed Platforms.Build.0 = Debug|x64
 		{9544C473-8276-46E0-B252-0576527DBE68}.Release|Mixed Platforms.ActiveCfg = Release|Win32
 		{9544C473-8276-46E0-B252-0576527DBE68}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{4706B526-42F0-420E-9CF2-B0AB775C8E47}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
