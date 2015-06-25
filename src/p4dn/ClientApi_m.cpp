@@ -139,7 +139,10 @@ System::String^ p4dn::ClientApi::GetProtocol( System::String^ v )
 
  void p4dn::ClientApi::Init( p4dn::Error^ e ) 
  { 
-	if(getClientApi()->GetCharset().Length() > 0)
+
+	 if((getClientApi()->GetCharset().Length() > 0) 
+		 && (getClientApi()->GetCharset() != "none") // P4CHARSET=none means not unicode client
+		)
 	{
 		// unicode server use UTF-8
 		_encoding = gcnew System::Text::UTF8Encoding();
@@ -153,6 +156,7 @@ System::String^ p4dn::ClientApi::GetProtocol( System::String^ v )
 	{
 		// non-unicode server use ANSI encoding
 		_encoding = System::Text::Encoding::GetEncoding(1252);
+		getClientApi()->SetTrans(CharSetApi::CharSet::NOCONV, CharSetApi::CharSet::NOCONV, CharSetApi::CharSet::NOCONV, CharSetApi::CharSet::NOCONV);
 	}
     getClientApi()->Init( e->InternalError );
 	if (_keepAliveDelegate == NULL) _keepAliveDelegate = new KeepAliveDelegate();
