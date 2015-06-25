@@ -8,9 +8,13 @@
  * DateTime - get and set the date as a string
  */
 
-// size for Fmt, FmtDay, FmtTz
+// size for Fmt, FmtDay
 
 # define DateTimeBufSize 20 
+
+// size for FmtTz, which can say things like '0700 - Pacific Standard Time'
+
+# define DateTimeZoneBufSize 80 
 
 class DateTime {
 
@@ -28,7 +32,9 @@ class DateTime {
 
 	void	Fmt( char *buf ) const;
 	void	FmtDay( char *buf ) const;
+	void	FmtDayUTC( char *buf ) const;
 	void	FmtTz( char *buf ) const;
+	void	FmtUTC( char *buf ) const;
 	void 	FmtElapsed( char *buf, const DateTime &t2 );
 	void	FmtUnifiedDiff( char *buf ) const;
 
@@ -52,6 +58,7 @@ class DateTime {
 	time_t	tval;
 	int	wholeDay;
 
+	int	ParseOffset( const char *s, const char *odate, Error *e );
 };
 
 class DateTimeNow : public DateTime {
@@ -59,5 +66,28 @@ class DateTimeNow : public DateTime {
     public:
 		DateTimeNow() : DateTime( (int)Now() ) {}
 
+} ;
+
+// Pass a buffer of at least this size to DateTimeHighPrecision::Fmt():
+
+# define DTHighPrecisionBufSize 40 
+
+/*
+ * Uses gettimeofday/clock_gettime/etc. to find more precise system time
+ */
+class DateTimeHighPrecision
+{
+    public:
+
+	void	Now();
+	void	Fmt( char *buf ) const;
+
+	time_t	Seconds() const;
+	int	Nanos() const;
+
+    private:
+
+	time_t	seconds; // Since 1/1/1970, natch
+	int	nanos;
 } ;
 

@@ -16,6 +16,7 @@
 # include "p4tags.h"
 
 # include "clientmerge.h"
+# include "clientresolvea.h"
 # include "clientuser.h"
 
 # include "keepalive.h"
@@ -118,6 +119,7 @@
  *		and (so as to take permanent effect) then calls SetClient(),
  *		etc. to take immediate effect.
  *
+ *	ClientApi::GetBuild()
  *	ClientApi::GetCharset()
  *	ClientApi::GetClient()
  *	ClientApi::GetCwd()
@@ -144,6 +146,7 @@
  */
 
 class Client;
+class Ignore;
 
 class ClientApi : public StrDict {
 
@@ -165,6 +168,8 @@ class ClientApi : public StrDict {
 	int		Final( Error *e );
 	int		Dropped();
 	int		GetErrors();
+	int		GetTrans();
+	int		IsUnicode();
 
 	void		RunTag( const char *func, ClientUser *ui );
 	void		WaitTag( ClientUser *ui = 0 );
@@ -172,7 +177,9 @@ class ClientApi : public StrDict {
 	void		SetCharset( const char *c );
 	void		SetClient( const char *c );
 	void		SetCwd( const char *c );
+	void		SetCwdNoReload( const char *c );
 	void		SetHost( const char *c );
+	void		SetIgnoreFile( const char *c );
 	void		SetLanguage( const char *c );
 	void		SetPassword( const char *c );
 	void		SetPort( const char *c );
@@ -180,11 +187,14 @@ class ClientApi : public StrDict {
 	void		SetProg( const char *c );
 	void		SetVersion( const char *c );
 	void		SetTicketFile( const char *c );
+	void		SetEnviroFile( const char *c );
 
 	void		SetCharset( const StrPtr *c );
 	void		SetClient( const StrPtr *c );
 	void		SetCwd( const StrPtr *c );
+	void		SetCwdNoReload( const StrPtr *c );
 	void		SetHost( const StrPtr *c );
+	void		SetIgnoreFile( const StrPtr *c );
 	void		SetLanguage( const StrPtr *c );
 	void		SetPassword( const StrPtr *c );
 	void		SetPort( const StrPtr *c );
@@ -192,12 +202,14 @@ class ClientApi : public StrDict {
 	void		SetProg( const StrPtr *c );
 	void		SetVersion( const StrPtr *c );
 	void		SetTicketFile( const StrPtr *c );
+	void		SetEnviroFile( const StrPtr *c );
 
 	void		SetBreak( KeepAlive *k );
 
 	void		DefineCharset( const char *c, Error *e );
 	void		DefineClient( const char *c, Error *e );
 	void		DefineHost( const char *c, Error *e );
+	void		DefineIgnoreFile( const char *c, Error *e );
 	void		DefineLanguage( const char *c, Error *e );
 	void		DefinePassword( const char *c, Error *e );
 	void		DefinePort( const char *c, Error *e );
@@ -205,14 +217,19 @@ class ClientApi : public StrDict {
 
 	const StrPtr	&GetCharset();
 	const StrPtr	&GetClient();
+	const StrPtr	&GetClientNoHost();
 	const StrPtr	&GetCwd();
 	const StrPtr	&GetHost();
+	const StrPtr	&GetIgnoreFile();
 	const StrPtr	&GetLanguage();
 	const StrPtr	&GetOs();
 	const StrPtr	&GetPassword();
 	const StrPtr	&GetPort();
 	const StrPtr	&GetUser();
 	const StrPtr	&GetConfig();
+	const StrPtr	&GetBuild();
+
+	Ignore *	GetIgnore();
 
 	void		SetIgnorePassword();
 

@@ -33,6 +33,7 @@
  *
  * 	StrOps::CharCnt() - Count characters in text using the server's charset
  * 	StrOps::CharCopy() - copy counting characters (not bytes)
+ *	StrOps::SafeLen() - Length of string including only complete characters
  *
  *	StrOps::UnpackInt() - extract an integer from front of buffer
  *	StrOps::UnpackInt64() - extract a long long from front of buffer
@@ -64,8 +65,10 @@ class StrOps {
 	static void	Caps( StrBuf &o );
 	static void	Dump( const StrPtr &o );
 	static void	Sub( StrPtr &string, char target, char replacement );
-	static void	Expand( StrBuf &o, const StrPtr &s, StrDict &d );
+	static void	Expand( StrBuf &o, const StrPtr &s, StrDict &d,
+	                        StrDict *u = 0 );
 	static void	Expand2( StrBuf &o, const StrPtr &s, StrDict &d );
+	static void	RmUniquote( StrBuf &o, const StrPtr &s );
 	static void	Indent( StrBuf &o, const StrPtr &s );
 	static void	Replace( StrBuf &o, const StrPtr &i,
 				const StrPtr &s, const StrPtr &r );
@@ -86,21 +89,29 @@ class StrOps {
 	static unsigned char XtoO( char h )
 			{ return h - ( h > '9' ? ( h >= 'a' ? 'a' - 10 : 'A' - 10 ) : '0' ); }
 
+	static int	IsDigest( const StrPtr &hex );
 	static void	WildToStr( const StrPtr &i, StrBuf &o );
 	static void	WildToStr( const StrPtr &i, StrBuf &o, const char *t );
 	static void	StrToWild( const StrPtr &i, StrBuf &o );
 	static void	WildCompat( const StrPtr &i, StrBuf &o );
+	static void	MaskNonPrintable( const StrPtr &i, StrBuf &o );
+	static void	EncodeNonPrintable( const StrPtr &i, StrBuf &o );
+	static void	DecodeNonPrintable( const StrPtr &i, StrBuf &o );
 
 	static void 	ScrunchArgs( StrBuf &out, int argc, 
-				StrPtr *argv, int targetLength );
+				StrPtr *argv, int targetLength,
+		       		int delim = ' ', const char *unsafeChars = 0);
 
 	static void     CommonPath( StrBuf &o, int &mdir, const StrPtr &n );
+	static void     GetDepotName( const char *d, StrBuf &n );
 	static void	StripNewline( StrBuf &o );
+	static void	LFtoCRLF( const StrBuf *in, StrBuf *out );
 
 	// i18n
 
 	static int	CharCnt( const StrPtr &i );
 	static void	CharCopy( const StrPtr &s, StrBuf &t, int length );
+	static int	SafeLen( const StrPtr &s );
 
 	// Marshalling
 

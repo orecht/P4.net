@@ -60,6 +60,8 @@ class Diff {
 
 	void		DiffFast() { fastMaxD = 1; }
 
+	int		GetChunkCnt() { return (chunkCnt); }
+
     private:
 
 	void		Walker( const char *flags, Sequence *s, 
@@ -74,13 +76,14 @@ class Diff {
 	LineType	lineType;
 	const char	*newLines;
 	int		fastMaxD;
+	int		chunkCnt;
 
 } ;
 
 class DiffFlags {
 
     public:
-			DiffFlags() { type = Normal; sequence = Line; }
+			DiffFlags() { Init( "" ); }
 			DiffFlags( const char *flags ) { Init( flags ); }
 			DiffFlags( const StrPtr *flags ) { Init( flags ); }
 

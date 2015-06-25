@@ -73,6 +73,8 @@
  *		calling StrDict::GetVar() to get the actual variable results.
  *
  *	ClientUser::Prompt() - prompt the user, and wait for a response.
+ *		Optionally takes a noOutput flag to suppress the prompt and
+ *		just collect the response.
  *
  *	ClientUser::ErrorPause() - print an error message and wait for the
  *		user before continuing.
@@ -81,7 +83,8 @@
  *		part of 'p4 spec-command'.
  *
  *	ClientUser::Diff() - diff two files, and display the results; the
- *		result of 'p4 diff'.
+ *		result of 'p4 diff'. Optionally takes a FileSys object to
+ *		direct output to a target file instead of stdout.
  *
  *	ClientUser::Merge() - merge three files and save the results; the
  *		result of saying 'm' to the resolve dialog of 'p4 resolve'.
@@ -97,11 +100,14 @@
 
 class Enviro;
 class ClientMerge;
+class ClientResolveA;
+class ClientProgress;
 
 class ClientUser {
 
     public:
-			ClientUser() { binaryStdout = 0; outputCharset = 0; }
+			ClientUser()
+			{ binaryStdout = 0; outputCharset = 0; quiet = 0; }
 	virtual		~ClientUser();
 
 	virtual void	InputData( StrBuf *strbuf, Error *e );
@@ -117,21 +123,28 @@ class ClientUser {
 
 	virtual void	Prompt( const StrPtr &msg, StrBuf &rsp, 
 				int noEcho, Error *e );
+	virtual void	Prompt( const StrPtr &msg, StrBuf &rsp,
+				int noEcho, int noOutput, Error *e );
 	virtual void	ErrorPause( char *errBuf, Error *e );
 
 	virtual void	Edit( FileSys *f1, Error *e );
 
 	virtual void	Diff( FileSys *f1, FileSys *f2, int doPage, 
 				char *diffFlags, Error *e );
+	virtual void	Diff( FileSys *f1, FileSys *f2, FileSys *fout,
+				int doPage, char *diffFlags, Error *e );
 
 	virtual void	Merge( FileSys *base, FileSys *leg1, FileSys *leg2, 
 				FileSys *result, Error *e );
 
 	virtual int	Resolve( ClientMerge *m, Error *e );
+	virtual int	Resolve( ClientResolveA *r, int preview, Error *e );
 
 	virtual void	Help( const char *const *help );
 
 	virtual FileSys	*File( FileSysType type );
+	virtual ClientProgress *CreateProgress( int );
+	virtual int	ProgressIndicator();
 
 	virtual void	Finished() {}
 
@@ -148,6 +161,7 @@ class ClientUser {
 
 	virtual void	SetOutputCharset( int );
 	virtual void	DisableTmpCleanup();
+	virtual void	SetQuiet();
 
 	// Output... and Help must use 'const char' instead of 'char'
 	// The following will cause compile time errors for using 'char'
@@ -164,8 +178,15 @@ class ClientUser {
 
     private:
 	int		binaryStdout;	// stdout is in binary mode
+	int		quiet;		// OutputInfo does nothing.
     protected:
 	int		outputCharset;	// P4CHARSET for output
+} ;
+
+class ClientUserProgress : public ClientUser {
+    public:
+	virtual ClientProgress *CreateProgress( int );
+	virtual int	ProgressIndicator();
 } ;
 
 /*

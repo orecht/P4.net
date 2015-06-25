@@ -69,7 +69,9 @@ class StrDict {
 		{ return VGetVarX( x, var, val ); }
 
 	void	ReplaceVar( const char *var, const char *value );
+	void	ReplaceVar( const StrPtr &var, const StrPtr &value );
 	void	RemoveVar( const char *var );
+	void	RemoveVar( const StrPtr &var ) { VRemoveVar( var ); }
 
 	void	Clear()
 		{ VClear(); }

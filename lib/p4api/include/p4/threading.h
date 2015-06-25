@@ -38,11 +38,17 @@
  *	Threading::Launch() - create a thread/process and call Thread::Run().
  *	
  *	Threading::Cancelled() - returns true (in leader) if Cancel()
+ *	Threading::Restarted() - returns true (in leader) if Restart()
  *
  *	Threading::Cancel() - can be called from any thread to tell the 
  *			leader to stop; leader calls Process::Cancel()
+ *	Threading::Restart() - can be called from any thread to tell the 
+ *			leader to restart; leader calls Process::Restart()
  *
  *	Threading::Reap() - called in leader to kill children
+ *
+ *	Threading::GetThreadCount() - returns the current number of threads
+ *                                    Only valid in the parent/main process!
  *
  * The current termination ritual:
  *
@@ -61,6 +67,9 @@
  *	in order to kill and collect all the child processes.  It should
  *	only do that if the database is safely locked from child process
  *	access.
+ *
+ * Restart is just like Cancel but the leader re-starts all processing rather
+ * than exiting.
  */
 
 enum ThreadMode {
@@ -94,16 +103,24 @@ class Threader {
 
     friend class Threading;
 
-			Threader() { cancelled = 0; }
+			Threader()
+	                { cancelled = 0; restarted = 0;
+	                  threadCount = 0; process = 0; }
 
 	virtual		~Threader();
 	virtual void	Launch( Thread *t );
 	virtual void	Cancel();
+	virtual void	Restart();
+	virtual void	Quiesce();
 	virtual void	Reap();
 
+	virtual int	GetThreadCount(); // varies on each system
+
 	int		cancelled;
+	int		restarted;
 	Process		*process;
 
+	int		threadCount; // not used by all implementations...
 } ;
 
 class Threading {
@@ -114,10 +131,17 @@ class Threading {
 
 	void		Launch( Thread *t ) { threader->Launch( t ); }
 	int		Cancelled() { return threader->cancelled; }
+	int		Restarted() { return threader->restarted; }
+	void		Quiesce() { threader->Quiesce(); }
 	void		Reap() { threader->Reap(); }
 
 	static void	Cancel() { if( current ) current->Cancel(); }
+	static void	Restart() { if( current ) current->Restart(); }
 	static int	WasCancelled() { if( current ) return current->cancelled; else return 0; }
+	static int	WasRestarted() { if( current ) return current->restarted; else return 0; }
+
+	static int	GetThreadCount()
+	                { return current ? current->GetThreadCount() : -1; }
 
     private:
 

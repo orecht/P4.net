@@ -21,6 +21,8 @@
  *
  *		If root is empty, local is used.
  *		If local is empty, results are not defined.
+ *		If canonical path is empty, trailing slash is appended to path.
+ *		(Trailing slash might cause problems with Stat() on windows.)
  *		Local can begin with relative references.
  *
  *	PathSys::GetCanon() - strip root and return rest as canon
@@ -44,6 +46,7 @@ class PathSys : public StrBuf {
 
 	virtual int	GetCanon( const StrPtr &root, StrBuf &t ) = 0;
 	virtual int	ToParent( StrBuf *file = 0 ) = 0;
+	virtual int	IsUnderRoot( const StrPtr &root ) = 0;
 	virtual void	SetCharSet( int = 0 );
 
 	void		Expand();

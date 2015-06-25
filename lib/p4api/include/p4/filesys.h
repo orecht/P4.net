@@ -16,6 +16,7 @@
  *	FileSys::Create() - create a FileSys, given its file type
  *	FileSys::CreateTemp() - create, destructor deletes the file
  *	FileSys::CreateGloablTemp() - Temp, constructor makes a global name
+ *	FileSys::FileExists() - does the passed filepath exist in the file system
  *	FileSys::Perm() - translate string perm to enum
  *
  * Public methods:
@@ -41,6 +42,7 @@
  *	FileSys::Open() - open named file according to mode
  *	FileSys::Write() - write a block into file
  *	FileSys::Read() - read a block from file
+ *	FileSys::Readlink() - NOT IMPL ON WINDOWS returns target of the symbolic link
  *	FileSys::ReadLine() - read a line into string
  *	FileSys::ReadWhole() - read whole file into string
  *	FileSys::Close() - close file description
@@ -51,6 +53,8 @@
  *
  *	FileSys::GetFd() - return underlying int fd, FST_BINARY only
  *	FileSys::GetSize() - return file size, FST_BINARY,TEXT,ATEXT only
+ *	FileSys::GetOwner() - return the UID of the file owner
+ *	FileSys::GetDiskSpace() - fill in data about filesystem space usage.
  *	FileSys::Seek() - seek to offset, FST_BINARY,TEXT,ATEXT only
  *	FileSys::Tell() - file position, FST_BINARY,TEXT,ATEXT only
  *
@@ -65,9 +69,14 @@
  *	FileSys::Copy - copy one file to another
  *	FileSys::Digest() - return a fingerprint of the file contents
  *	FileSys::Chmod2() - copy a file to get ownership and set perms
+ *	FileSys::Fsync() - sync file state to disk
  *
  *	FileSys::CheckType() - look at the file and see if it is binary, etc
  */
+
+# ifdef OS_NT
+# define DOUNICODE ( CharSetApi::isUnicode((CharSetApi::CharSet)GetCharSetPriv()) )
+# endif
 
 enum FileSysType
 {
@@ -141,17 +150,39 @@ enum FileStatFlags {
 
 enum FileOpenMode {
 	FOM_READ,		// open for reading
-	FOM_WRITE		// open for writing
+	FOM_WRITE,		// open for writing
+	FOM_RW			// open for write, but don't trunc, allow read
 } ;
 
 enum FilePerm {
 	FPM_RO,		// leave file read-only
 	FPM_RW,		// leave file read-write
-	FPM_ROO		// leave file read-only (owner)
+	FPM_ROO,	// leave file read-only (owner)
+	// following two enums are for key file and dir permissions
+	FPM_RXO,	// set file read-execute (owner) NO W
+	FPM_RWO,	// set file read-write (owner) NO X
+	FPM_RWXO	// set file read-write-execute (owner)
 } ;
 
 class StrArray;
 class CharSetCvt;
+class MD5;
+class StrBuf;
+
+class DiskSpaceInfo {
+
+    public:
+
+	    		DiskSpaceInfo();
+			~DiskSpaceInfo();
+
+	P4INT64		blockSize;
+	P4INT64		totalBytes;
+	P4INT64		usedBytes;
+	P4INT64		freeBytes;
+	int		pctUsed;
+	StrBuf		*fsType;
+} ;
 
 class FileSys {
 
@@ -175,7 +206,30 @@ class FileSys {
 
 	static FilePerm Perm( const char *p );
 
+	static bool     FileExists( const char *p );
+
 	static int	BufferSize();
+
+	static bool	IsRelative( const StrPtr &p );
+
+# ifdef OS_NT
+	static bool	IsUNC( const StrPtr &p );
+# endif
+
+	virtual void	SetBufferSize( size_t ) { }
+
+	int		IsUnderPath( const StrPtr &path );
+
+	static int	SymlinksSupported()
+# ifdef OS_NT
+		;		// Have to probe the system to decide
+# else
+# ifdef HAVE_SYMLINKS
+				{ return 1; }
+# else
+				{ return 0; }
+# endif
+# endif
 
 	// Get/set perms, modtime
 
@@ -187,6 +241,14 @@ class FileSys {
 
 	void		SetSizeHint( offL_t l ) { sizeHint = l; }
 	offL_t		GetSizeHint() { return sizeHint; }
+
+	// Set advise hint (don't pollute O.S cache with archive content)
+ 
+	virtual void    SetCacheHint() { cacheHint = 1; } 
+
+	// Initialize digest
+
+	virtual void	SetDigest( MD5 *m );
 
 	// Get type info
 
@@ -211,7 +273,11 @@ class FileSys {
 			FileSys();
 	virtual		~FileSys();
 
+# ifdef OS_NT
+	virtual void	SetLFN( const StrPtr &name );
+# endif
 	virtual void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name, Error *e );
 	virtual StrPtr	*Path() { return &path; }
 	virtual int	DoIndirectWrites();
 	virtual void	Translator( CharSetCvt * );
@@ -221,17 +287,26 @@ class FileSys {
 	virtual int	Read( char *buf, int len, Error *e ) = 0;
 	virtual void	Close( Error *e ) = 0;
 
+
 	virtual int	Stat() = 0;
 	virtual int	StatModTime() = 0;
 	virtual void	Truncate( Error *e ) = 0;
+	virtual void	Truncate( offL_t offset, Error *e ) = 0;
 	virtual void	Unlink( Error *e = 0 ) = 0;
 	virtual void	Rename( FileSys *target, Error *e ) = 0;
+	// Note: Readlink in NOT IMPLEMENTED on Windows, sets Fatal error
+	virtual int	Readlink( StrBuf &linkPath, Error *e );
+	// Note: Writelink in NOT IMPLEMENTED on Windows, sets Fatal error
+	virtual int	Writelink( const StrPtr &linkPath, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e ) = 0;
 	virtual void	ChmodTime( Error *e ) = 0;
 
-	// NB: these for ReadFile only; interface will likely change
+	virtual void	Fsync( Error *e ) { }
 
+	// NB: these for ReadFile only; interface will likely change
+	virtual bool	HasOnlyPerm( FilePerm perms );
 	virtual int	GetFd();
+	virtual int     GetOwner();
 	virtual offL_t	GetSize();
 	virtual void	Seek( offL_t offset, Error * );
 	virtual offL_t	Tell();
@@ -244,6 +319,8 @@ class FileSys {
 
 	char *		Name() { return Path()->Text(); }
 	void		Set( const char *name ) { Set( StrRef( name ) ); }
+	void		Set( const char *name, Error *e )
+	                { Set( StrRef( name ), e ); }
 
 	void		Write( const StrPtr &b, Error *e ) 
 			{ Write( b.Text(), b.Length(), e ); }
@@ -269,7 +346,7 @@ class FileSys {
 	virtual void	RmDir( const StrPtr &p, Error *e );
 	void		RmDir( Error *e = 0 ) { RmDir( path, e ); }
 
-	FileSysType	CheckType();
+	FileSysType	CheckType( int scan = -1 );
 
 # if defined ( OS_MACOSX )
 	FileSysType	CheckTypeMac();
@@ -300,6 +377,9 @@ class FileSys {
 	void		SetContentCharSetPriv( int x = 0 ) { content_charSet = x; }
 	int		GetContentCharSetPriv() { return content_charSet; }
 
+	void		GetDiskSpace( DiskSpaceInfo *info, Error *e );
+
+	void		LowerCasePath();
     protected:
 
 	FileOpenMode	mode;		// read or write
@@ -308,6 +388,12 @@ class FileSys {
 	offL_t		sizeHint;       // how big will the file get ?
 	StrBuf		path;
 	FileSysType 	type;
+	MD5		*checksum;      // if verifying file transfer
+	int		cacheHint;      // don't pollute cache
+
+# ifdef OS_NT
+	int		LFN;
+# endif
 
     private:
 	void		TempName( char *buf );

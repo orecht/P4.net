@@ -57,4 +57,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 #pragma comment (lib, "libclient.lib")
 #pragma comment (lib, "librpc.lib")
 #pragma comment (lib, "libsupp.lib")
+#pragma comment (lib, "libp4sslstub.lib")
 #pragma comment (lib, "ws2_32.lib")

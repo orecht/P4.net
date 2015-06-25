@@ -47,11 +47,16 @@
 
 # include <error.h>
 
-# define RAF_NAME 0x01	// get symbolic name
-# define RAF_PORT 0x02	// append port number
-
 class KeepAlive;
 class NetTransport;
+class RpcZksClient;    // NetEndPoint's friend
+
+enum PeekResults
+{
+    PeekTimeout = 0,
+    PeekSSL,
+    PeekCleartext
+};
 
 struct NetIoPtrs {
 
@@ -64,14 +69,31 @@ struct NetIoPtrs {
 } ;
 
 class NetEndPoint {
-
+    friend class RpcZksClient;
     public:
 	static NetEndPoint *	Create( const char *addr, Error *e );
-	StrPtr &		GetAddress() { return service; }
+	StrPtr 			GetAddress() { return ppaddr.HostPort(); }
+	virtual void            GetExpiration( StrBuf &buf );
 
 	virtual			~NetEndPoint();
 
 	virtual StrPtr		*GetListenAddress( int raf_flags ) = 0;
+	virtual StrPtr		*GetHost() = 0;
+
+	// like GetHost(), but NetTcpEndPoint transforms into our standard printable form
+	virtual StrBuf		GetPrintableHost()
+				{
+				    return *GetHost();
+				}
+
+	virtual void             GetMyFingerprint(StrBuf &value)
+				{
+				    value.Clear();
+				}
+	virtual bool		IsAccepted()
+				{
+				    return isAccepted;
+				}
 
 	virtual void		Listen( Error *e ) = 0;
 	virtual void		ListenCheck( Error *e ) = 0;
@@ -83,19 +105,33 @@ class NetEndPoint {
 
 	virtual int 		IsSingle() = 0;
 
+	NetPortParser &		GetPortParser() { return ppaddr; }
+
     protected:
+	NetPortParser		ppaddr;		// parsed transport/host/service endpoint
+	bool			isAccepted;
 
-	StrBuf			service;	// endpoint name
-
+	virtual int		GetFd() { return -1; }; // method used by RpcZksClient
 } ;
 
 class NetTransport : public KeepAlive {
 
     public:
 	virtual		~NetTransport();
+	virtual void    ClientMismatch( Error *e );
+	virtual void	DoHandshake( Error * /* e */) {} // default: do nothing
 
 	virtual StrPtr *GetAddress( int raf_flags ) = 0;
 	virtual StrPtr *GetPeerAddress( int raf_flags ) = 0;
+	virtual int	GetPortNum()
+	    		{
+			    return -1;
+			}
+	virtual bool	IsSockIPv6()
+	    		{
+			    return false;
+			}
+	virtual bool	IsAccepted() = 0;
 
 	virtual void	Send( const char *buffer, int length, Error *e ) = 0;
 	virtual int	Receive( char *buffer, int length, Error *e ) = 0;
@@ -103,7 +139,15 @@ class NetTransport : public KeepAlive {
 	virtual void	SetBreak( KeepAlive *breakCallback ) = 0;
 	virtual int	GetSendBuffering() = 0;
 	virtual int	GetRecvBuffering() = 0;
+	virtual void    GetEncryptionType(StrBuf &value)
+	                {
+			    value.Clear();
+			}
 
+	virtual void    GetPeerFingerprint(StrBuf &value)
+	                {
+			    value.Clear();
+			}
 	// I&O
 
 	virtual int	SendOrReceive( NetIoPtrs &io, Error *se, Error *re );
@@ -112,6 +156,9 @@ class NetTransport : public KeepAlive {
 
 	virtual int	GetFd() { return -1; }
 
+protected:
+	PeekResults	CheckForHandshake(int fd);
+	virtual int	Peek( int fd, char *buffer, int length );
 } ;
 
 # endif // # ifndef __NETCONNECT_H__

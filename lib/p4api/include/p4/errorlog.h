@@ -24,6 +24,8 @@
 
 class FileSys;
 
+typedef void (*StructuredLogHook)( void *context, const Error *e );
+
 /*
  * class ErrorLog - write errors to log/syslog
  */
@@ -31,15 +33,20 @@ class FileSys;
 class ErrorLog {
 
     public:
-			ErrorLog(){
-			    useSyslog = 0;
-			    errorTag = "Error";
-			    errorFsys = 0;
-			}
+			enum log_types
+			{
+			    type_none,
+			    type_stdout,
+			    type_stderr,
+			    type_syslog
+			};
+			ErrorLog(): hook(NULL), context(NULL){ init(); }
 			ErrorLog( ErrorLog *from );
 			~ErrorLog();
 
 	void		Abort( const Error *e );
+	void		SysLog( const Error *e, int tagged, const char *et,
+				const char *buf );
 	void		Report( const Error *e ){ Report( e, 1 ); }
 	void		ReportNoTag( const Error *e ){ Report( e, 0 ); }
 	void		Report( const Error *e, int tagged );
@@ -54,16 +61,28 @@ class ErrorLog {
 	// Global settings
 
 	void		SetLog( const char *file );
-	void		SetSyslog() { useSyslog = 1; }
-	void		UnsetSyslog() { useSyslog = 0; }
+	void		SetSyslog() { logType = type_syslog; }
+	void		UnsetSyslog() { logType = type_stderr; }
+	void		UnsetLogType() { logType = type_none; }
 	void		SetTag( const char *tag ) { errorTag = tag; }
+	void		EnableCritSec();
+
+	void		Rename( const char *file, Error *e );
+
+	void SetStructuredLogHook( void *ctx, StructuredLogHook hk )
+		{ hook = hk; context = ctx; }
 
     private:
+	void		init();
 
 	const 		char *errorTag;
-	int		useSyslog;
+	int		logType;
 	FileSys		*errorFsys;
 
+	StructuredLogHook hook;
+	void		*context;
+
+	void		*vp_critsec;
 } ;
 
 /*
