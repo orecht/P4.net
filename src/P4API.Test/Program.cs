@@ -1,20 +1,18 @@
 ﻿using System;
+using P4API;
 
 namespace P4API.Test
 {
-
     /// <summary>
     /// </summary>
     public static class Program
     {
-
         /// <summary>
         /// </summary>
         static Program()
         {
             P4API.Bootstrapper.Initialize();
         }
-
 
         /// <summary>
         /// </summary>
@@ -25,6 +23,8 @@ namespace P4API.Test
                 try
                 {
                     c.Connect();
+                    P4RecordSet ret = c.Run("reconcile", "//database/trunk/logging/...");
+                    ret.DumpToConsole();
                 }
                 catch (Exception ex)
                 {
@@ -34,6 +34,10 @@ namespace P4API.Test
                     Console.WriteLine(ex.Message);
                     Console.WriteLine(ex.StackTrace);
                     Console.ResetColor();
+                }
+                finally
+                {
+                    Console.ReadKey();
                 }
             }
             return 0;
